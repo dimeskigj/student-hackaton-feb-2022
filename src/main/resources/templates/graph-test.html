@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=1080, initial-scale=1.0"/>
+    <title>Document</title>
+    <style>
+        .link {
+            stroke: #aaa;
+        }
+
+        .node text {
+            stroke: #333;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .node circle {
+            stroke: #555;
+            stroke-width: 4px;
+            fill: #FFF;
+            cursor: pointer;
+        }
+
+    </style>
+    <script src="https://cdn.neo4jlabs.com/neovis.js/v1.5.0/neovis.js"></script>
+    <script src="https://d3js.org/d3.v2.min.js"></script>
+
+</head>
+<body>
+<span id="fax" th:text="${fax}" hidden="hidden"></span>
+<div id="viz"></div>
+</body>
+<script>
+    let width = 1500, height = 700;
+
+    let svg = d3.select("body").append("svg").attr("width", width).attr("height", height);
+
+    let force = d3.layout.force().gravity(0.01).distance(150).charge(-100).size([width, height]);
+
+    // d3.json("graphFile.json", function (json) {
+
+    let url = "http://localhost:420/api/?subjectCodes=" + document.getElementById("fax").innerHTML;
+
+    d3.json(url, function (json) {
+        console.log(json);
+        force.nodes(json.nodes).links(json.links).start();
+
+        let link = svg
+            .selectAll(".link")
+            .data(json.links)
+            .enter()
+            .append("line")
+            .attr("class", "link")
+            .style("stroke-width", "3px");
+
+        let marker = d3.select("svg").append('defs')
+            .append('marker')
+            .attr("id", "Triangle")
+            .attr("refX", 12)
+            .attr("refY", 6)
+            .attr("markerUnits", 'userSpaceOnUse')
+            .attr("markerWidth", 12)
+            .attr("markerHeight", 18)
+            .attr("orient", 'auto')
+            .append('path')
+            .attr("d", 'M 0 0 12 6 0 12 3 6');
+        d3.selectAll("line").attr("marker-end", "url(#Triangle)")
+
+        let node = svg.selectAll(".node").data(json.nodes).enter().append("g").attr("class", "node").call(force.drag);
+
+        node.append("circle").attr("r", "5");
+
+        node.append("text")
+            .attr("dx", 12)
+            .attr("dy", ".35em")
+            .text(function (d) {
+                return d.name;
+            });
+
+        force.on("tick", function () {
+            link.attr("x1", function (d) {
+                return d.source.x;
+            })
+                .attr("y1", function (d) {
+                    return d.source.y;
+                })
+                .attr("x2", function (d) {
+                    return d.target.x;
+                })
+                .attr("y2", function (d) {
+                    return d.target.y;
+                });
+
+            node.attr("transform", function (d) {
+                return "translate(" + d.x + "," + d.y + ")";
+            });
+        });
+    });
+</script>
+</html>
